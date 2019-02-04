@@ -152,6 +152,7 @@ func dbMain(args []string) int {
 		}
 	}
 
+	fmt.Println("--------- complete --------")
 	return 0
 }
 
@@ -189,6 +190,7 @@ func validateToken(ctx context.Context, tx *sql.Tx, username, token string) (int
 		log.Printf("query context got error: %s\n", err)
 		return -1, -1, err
 	}
+	defer rows.Close()
 
 	for rows.Next() {
 		var (
