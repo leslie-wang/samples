@@ -108,7 +108,7 @@ func main() {
 }
 
 func dbMain(args []string) int {
-	db, err := sql.Open("sqlite3_tracing", "./test.db")
+	db, err := sql.Open("sqlite3_tracing", ":memory:")
 	if err != nil {
 		fmt.Printf("Failed to open database: %#+v\n", err)
 		return 1
@@ -117,6 +117,25 @@ func dbMain(args []string) int {
 
 	err = db.Ping()
 	if err != nil {
+		log.Panic(err)
+	}
+
+	if _, err := db.Exec(`
+CREATE TABLE IF NOT EXISTS user (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ user_name TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS token(
+ token TEXT NOT NULL,
+ user_id INTEGER NOT NULL,
+ device_id INTEGER NOT NULL
+);
+insert into user (user_name) values ("alice");
+insert into token(token, user_id, device_id) values ("1234", 1, 1);
+
+insert into user (user_name) values ("bob");
+insert into token(token, user_id, device_id) values ("4321", 2, 2);
+`); err != nil {
 		log.Panic(err)
 	}
 
@@ -141,15 +160,15 @@ func dbMain(args []string) int {
 		userid     int
 		deviceid   int
 	)
-	err = stmt.QueryRowContext(ctx, "alice").Scan(&tokenQuery, &userid, &deviceid)
-	if err != nil {
+	if err := stmt.QueryRowContext(ctx, "alice").Scan(&tokenQuery, &userid, &deviceid); err != nil {
 		log.Printf("query context got error: %s\n", err)
 		log.Panic(err)
 	}
-
-	fmt.Println("--------- complete --------")
 	if err := tx.Commit(); err != nil {
 		log.Panic(err)
 	}
+	fmt.Printf("--------- Receive: %s, %d, %d\n", tokenQuery, userid, deviceid)
+	fmt.Println("--------- complete --------")
+
 	return 1
 }
